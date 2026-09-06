@@ -2,10 +2,11 @@ import { listExpiringStock } from '../models/stockTransaction.js';
 import { printTable } from '../lib/format.js';
 import { handleCliError } from '../lib/errors.js';
 import { expiryCheckSchema } from '../lib/validate.js';
+import { askNumber, pickOptionalInstitution } from '../lib/interact.js';
 
 export function registerExpiryCommands(program, { check }) {
-  registerExpiryCommand(program.command('expiry'), 'List positive stock expiring within N days');
-  registerExpiryCommand(check.command('expiry'), 'Check for positive stock expiring within N days');
+  registerExpiryCommand(program.command('expiry'), 'List stock expiring within N days');
+  registerExpiryCommand(check.command('expiry'), 'List stock expiring within N days');
 }
 
 function registerExpiryCommand(command, description) {
@@ -14,7 +15,13 @@ function registerExpiryCommand(command, description) {
     .option('--within <within>', 'number of days')
     .option('--institution <institution>', 'optional institution id')
     .action(withErrorHandling(async (options) => {
-      const input = expiryCheckSchema.parse(options);
+      const within = options.within ?? await askNumber('Show stock expiring within how many days?', {
+        initial: 90,
+        min: 1
+      });
+      const institution = options.institution ?? await pickOptionalInstitution('Which institution?');
+
+      const input = expiryCheckSchema.parse({ within, institution: institution ?? undefined });
       const rows = await listExpiringStock(input);
       printTable(
         ['Institution', 'Drug', 'Unit', 'Batch', 'Expiry', 'Days', 'Qty'],

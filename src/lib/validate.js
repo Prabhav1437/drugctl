@@ -44,7 +44,7 @@ export const batchAddSchema = z.object({
 });
 
 export const batchListSchema = z.object({
-  drug: uuid
+  drug: optionalUuid
 });
 
 export const batchFlagSchema = z.object({

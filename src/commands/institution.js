@@ -2,6 +2,13 @@ import { createInstitution, listInstitutions } from '../models/institution.js';
 import { printRecord, printTable } from '../lib/format.js';
 import { handleCliError } from '../lib/errors.js';
 import { institutionAddSchema, institutionListSchema } from '../lib/validate.js';
+import {
+  askOptionalText,
+  askText,
+  pickListType,
+  pickOptionalInstitution,
+  pickType
+} from '../lib/interact.js';
 
 export function registerInstitutionCommands({ add, list }) {
   add
@@ -12,8 +19,14 @@ export function registerInstitutionCommands({ add, list }) {
     .option('--parent <parent>', 'parent institution id')
     .option('--location <location>', 'free-text location')
     .action(withErrorHandling(async (options) => {
-      const input = institutionAddSchema.parse(options);
-      const row = await createInstitution(input);
+      const name = options.name ?? await askText('Institution name:');
+      const type = options.type ?? await pickType('Institution type:');
+      const parent = options.parent ?? await pickOptionalInstitution('Parent institution:', {
+        noneLabel: 'No parent'
+      });
+      const location = options.location ?? await askOptionalText('Location (optional):');
+
+      const row = await createInstitution(institutionAddSchema.parse({ name, type, parent, location }));
       printRecord({
         id: row.id,
         name: row.name,
@@ -29,8 +42,9 @@ export function registerInstitutionCommands({ add, list }) {
     .description('List institutions')
     .option('--type <type>', 'filter by institution type')
     .action(withErrorHandling(async (options) => {
-      const input = institutionListSchema.parse(options);
-      const rows = await listInstitutions(input);
+      const typeSelection = options.type ?? await pickListType('Filter by institution type:');
+      const type = typeSelection === 'all' ? undefined : typeSelection;
+      const rows = await listInstitutions(institutionListSchema.parse({ type }));
       printTable(
         ['ID', 'Name', 'Type', 'Parent', 'Location'],
         rows.map((row) => [row.id, row.name, row.type, row.parent_name, row.location])
