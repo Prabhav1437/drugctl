@@ -44,6 +44,7 @@ export function registerDatabaseHooks() {
   });
 
   after(async () => {
+    await resetDatabase();
     await closePool?.();
   });
 }
