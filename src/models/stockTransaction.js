@@ -52,6 +52,28 @@ export async function getBalance(client, institution, batch) {
   return result.rows[0].balance;
 }
 
+export async function listBatchesWithStock({ institution }) {
+  const result = await getPool().query(
+    `
+      SELECT b.id,
+             d.name AS drug_name,
+             d.unit,
+             b.batch_no,
+             b.expiry_date,
+             b.flagged,
+             COALESCE(SUM(st.qty), 0)::integer AS qty
+      FROM batches b
+      JOIN drugs d ON d.id = b.drug_id
+      LEFT JOIN stock_transactions st ON st.batch_id = b.id AND st.institution_id = $1
+      GROUP BY b.id, d.name, d.unit, b.batch_no, b.expiry_date, b.flagged
+      ORDER BY d.name, b.expiry_date, b.batch_no
+    `,
+    [institution]
+  );
+
+  return result.rows;
+}
+
 export async function listBalances({ institution, drug }) {
   const params = [institution];
   const drugFilter = drug ? 'AND d.id = $2' : '';

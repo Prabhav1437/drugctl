@@ -13,17 +13,23 @@ export async function createBatch({ drug, batchNo, mfg, expiry, vendor }) {
   return result.rows[0];
 }
 
-export async function listBatches({ drug }) {
+export async function listBatches({ drug } = {}) {
+  const params = [];
+  const where = drug ? 'WHERE b.drug_id = $1' : '';
+  if (drug) {
+    params.push(drug);
+  }
+
   const result = await getPool().query(
     `
       SELECT b.id, d.name AS drug_name, b.batch_no, b.mfg_date, b.expiry_date,
              b.vendor_name, b.flagged, b.flag_reason
       FROM batches b
       JOIN drugs d ON d.id = b.drug_id
-      WHERE b.drug_id = $1
+      ${where}
       ORDER BY b.expiry_date, b.batch_no
     `,
-    [drug]
+    params
   );
 
   return result.rows;

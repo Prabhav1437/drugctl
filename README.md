@@ -2,7 +2,7 @@
 
 `drugctl` is a Node.js CLI for tracking drug inventory across government health institutions, from state warehouses down to district warehouses, hospitals, CHCs, and PHCs.
 
-This is Iteration 1. It covers master data, batch tracking, stock receive/issue/adjustment, current balances, expiry checks, and low-stock reports.
+It is Iteration 1. It covers master data, batch tracking, stock receive/issue/adjustment, current balances, expiry checks, and low-stock reports.
 
 ## Prerequisites
 
@@ -12,10 +12,11 @@ This is Iteration 1. It covers master data, batch tracking, stock receive/issue/
 
 ## Setup
 
-Install dependencies:
+Install dependencies and link the CLI so it runs as `drugctl`:
 
 ```bash
 npm install
+npm link
 ```
 
 By default, the CLI connects to:
@@ -24,7 +25,7 @@ By default, the CLI connects to:
 DATABASE_URL=postgres://drugctl:drugctl@localhost:5432/drugctl
 ```
 
-If you already have a local PostgreSQL database named `drugctl`, check the connection and run migrations:
+Check the connection and run migrations:
 
 ```bash
 npm run db:check
@@ -37,21 +38,73 @@ Copy `.env.example` to `.env` if you want to override `DATABASE_URL` or keep the
 cp .env.example .env
 ```
 
-If you do not have PostgreSQL installed locally, use Docker Compose:
+If you do not have PostgreSQL installed locally, use Docker Compose instead:
 
 ```bash
 npm run db:up
 npm run migrate
 ```
 
-Link the package once during local development so commands run as `drugctl`:
+If you do not want to link the package, use `npm run dev --` before any command. For example, `npm run dev -- list drugs` runs the same code as `drugctl list drugs`.
+
+## Quick start (guided mode)
+
+Every command can be used as a simple walkthrough. Type the command, press Enter, and answer the questions as they come. No IDs or flags needed — you pick institutions, drugs, and batches from menus:
 
 ```bash
-npm link
-drugctl --help
+drugctl receive
 ```
 
-If you do not want to link it, use `npm run dev --` before any command. For example, `npm run dev -- list drugs` runs the same code as `drugctl list drugs`.
+```
+◆  Which institution received the stock?
+│  ● State Warehouse Delhi — State Warehouse (Delhi)
+│  ○ PHC Rohini — Primary Health Centre (PHC) (Rohini)
+└
+
+◆  Which drug / batch was received?
+│  ● ORS Powder | ORS1 | expires 2026-09-15 | stock 200 sachet
+│  ○ Paracetamol 500mg | B22  | expires 2030-03-01 | stock 500 strip
+└
+
+◆  How many units were received?
+│  25
+
+◆  Note (optional):
+│  opening receipt
+```
+
+The same style works for `add`, `issue`, `adjust`, `balance`, `expiry`, `low-stock`, and `flag`:
+
+```bash
+drugctl add institution      # answers: name, type, parent, location
+drugctl add drug             # answers: name, generic name, form, unit, storage
+drugctl add batch            # answers: drug, batch number, dates, vendor
+drugctl issue                # answers: institution, drug/batch, quantity, note
+drugctl adjust               # answers: institution, drug/batch, quantity, reason
+drugctl balance              # answers: institution, optional drug
+drugctl expiry --within 90   # answers: days (default 90), optional institution
+drugctl low-stock            # answers: institution, threshold (default 100)
+drugctl flag batch           # answers: batch, reason
+```
+
+Use the arrow keys to move through a menu and Enter to select. Press Ctrl+C at any time to cancel.
+
+## Flags for automation
+
+Every command also accepts flags, which is useful for scripting and bulk tasks. When a value is provided as a flag, it is used instead of asking. For example:
+
+```bash
+drugctl add institution --name "PHC Rohini" --type PHC --location "Rohini"
+drugctl add drug --name "Paracetamol 500mg" --form tablet --unit strip
+drugctl add batch --drug <drug_id> --batch-no B22 --expiry 2030-03-01
+drugctl receive --institution <id> --batch <id> --qty 500 --note "opening"
+drugctl issue --institution <id> --batch <id> --qty 50 --note "issued to OPD"
+drugctl adjust --institution <id> --batch <id> --qty -20 --reason "damaged"
+drugctl balance --institution <id> --drug <id>
+drugctl expiry --within 90 --institution <id>
+drugctl low-stock --institution <id> --threshold 100
+drugctl flag batch <batch_id> --reason "quality complaint"
+```
 
 ## Database
 
@@ -65,12 +118,12 @@ The schema uses UUID primary keys, plain SQL migrations, and a signed stock ledg
 
 Negative stock is blocked in two places:
 
-- Application logic checks balance inside a database transaction for `stock issue` and `stock adjust`.
+- Application logic checks balance inside a database transaction for `issue` and negative `adjust` commands.
 - A PostgreSQL trigger rejects any direct insert that would make an institution and batch balance negative.
 
 ## Command Reference
 
-All examples below use the linked CLI name, `drugctl`.
+All commands are run as `drugctl`. Every command works in guided mode (just run it and answer the prompts) or with flags.
 
 ### System
 
@@ -82,71 +135,61 @@ drugctl check --help
 drugctl flag --help
 ```
 
-`drugctl --help` shows the top-level command tree. The grouped help commands show available subcommands for adding, listing, checking, and flagging records.
+`drugctl --help` shows the top-level command tree, grouped into add/list/check/flag plus the direct stock commands.
 
-### Add Records
-
-```bash
-drugctl add institution --name "State Warehouse Delhi" --type STATE_WH --location "Delhi"
-drugctl add institution --name "PHC Rohini 12" --type PHC --parent <parent_id>
-drugctl add drug --name "Paracetamol 500mg" --form tablet --unit strip --storage NORMAL
-drugctl add drug --name "Insulin" --form injection --unit vial --storage COLD_CHAIN
-drugctl add batch --drug <drug_id> --batch-no B22 --expiry 2027-03-01 --vendor "XYZ Pharma"
-drugctl add batch --drug <drug_id> --batch-no B23 --mfg 2026-01-01 --expiry 2027-04-01
-```
-
-`drugctl add institution` creates master records for state warehouses, district warehouses, hospitals, CHCs, and PHCs. `drugctl add drug` creates drug master records. `drugctl add batch` creates a batch under an existing drug.
-
-### List Records
+### master data
 
 ```bash
+drugctl add institution     # guided: name, type, parent, location
+drugctl add drug            # guided: name, generic name, form, unit, storage
+drugctl add batch           # guided: drug, batch number, mfg, expiry, vendor
 drugctl list institutions
-drugctl list institutions --type PHC
 drugctl list drugs
-drugctl list batches --drug <drug_id>
-drugctl list balances --institution <institution_id>
-drugctl list balances --institution <institution_id> --drug <drug_id>
-drugctl list low-stock --institution <institution_id> --threshold 100
+drugctl list batches
 ```
 
-List commands print tables. `drugctl list balances` shows positive on-hand stock per batch. `drugctl list low-stock` shows drugs whose total on-hand quantity at an institution is below the threshold.
+`drugctl list institutions` can be filtered by type (`--type PHC`), `drugctl list batches` can be filtered by drug (`--drug <id>`). Singular aliases also work for the master-data lists: `drugctl list institution`, `drugctl list drug`, `drugctl list batch`.
 
-Singular aliases also work for the master-data lists:
+### Stock movement
 
 ```bash
-drugctl list institution
-drugctl list drug
-drugctl list batch --drug <drug_id>
-drugctl list balance --institution <institution_id>
+drugctl receive    # guided: institution, drug/batch, quantity, note
+drugctl issue      # guided: institution, drug/batch, quantity, note
+drugctl adjust     # guided: institution, drug/batch, quantity, reason
+drugctl balance    # guided: institution, optional drug filter
 ```
 
-### Stock Movement
-
-```bash
-drugctl receive --institution <institution_id> --batch <batch_id> --qty 500 --note "opening receipt"
-drugctl issue --institution <institution_id> --batch <batch_id> --qty 50 --note "issued to OPD"
-drugctl adjust --institution <institution_id> --batch <batch_id> --qty -20 --reason "damaged in storage"
-drugctl balance --institution <institution_id>
-drugctl balance --institution <institution_id> --drug <drug_id>
-```
-
-`drugctl receive` records stock coming in. `drugctl issue` records stock going out. `drugctl adjust` records signed corrections, such as damaged stock. `drugctl issue` and negative `drugctl adjust` commands fail if the resulting balance would be below zero. The error includes the current balance.
+- `receive` records stock coming in.
+- `issue` records stock going out.
+- `adjust` records signed corrections, such as damaged stock.
+- `issue` and negative `adjust` fail if the resulting balance would be below zero, and the error includes the current balance.
+- `balance` prints the current on-hand stock per batch, optionally for one drug.
 
 ### Checks
 
 ```bash
-drugctl check expiry --within 90
-drugctl check expiry --within 90 --institution <institution_id>
+drugctl expiry
 drugctl expiry --within 90
-drugctl expiry --within 90 --institution <institution_id>
+drugctl check expiry
+drugctl expiry --institution <id>
 ```
 
-The expiry check lists batches expiring within the requested number of days that still have positive stock somewhere.
+The guided prompts default to stock expiring within 90 days. The expiry report lists batches expiring within the requested window that still have positive stock, optionally for one institution.
 
-### Flag Records
+### Reports
 
 ```bash
-drugctl flag batch <batch_id> --reason "vendor quality complaint"
+drugctl low-stock
+drugctl low-stock --threshold 100
+```
+
+Lists drugs whose total on-hand quantity at an institution is below the threshold (guided default 100).
+
+### Flag records
+
+```bash
+drugctl flag batch
+drugctl flag batch <batch_id> --reason "quality complaint"
 ```
 
 Flagging marks a batch for review and stores a reason, such as a quality complaint.
