@@ -1,6 +1,6 @@
 import { createBatch, flagBatch, listBatches } from '../models/batch.js';
 import { printRecord, printTable } from '../lib/format.js';
-import { AppError, handleCliError } from '../lib/errors.js';
+import { AppError } from '../lib/errors.js';
 import { batchAddSchema, batchFlagSchema, batchListSchema } from '../lib/validate.js';
 import {
   askDate,
@@ -20,7 +20,7 @@ export function registerBatchCommands({ add, list, flag }) {
     .option('--mfg <mfg>', 'manufacturing date, YYYY-MM-DD')
     .option('--expiry <expiry>', 'expiry date, YYYY-MM-DD')
     .option('--vendor <vendor>', 'vendor name')
-    .action(withErrorHandling(async (options) => {
+    .action(async (options) => {
       const drug = options.drug ?? await pickDrug('Which drug is this batch for?');
       const batchNo = options.batchNo ?? await askText('Batch number:');
       const mfg = options.mfg ?? await askOptionalText('Manufacturing date YYYY-MM-DD (optional):');
@@ -36,14 +36,14 @@ export function registerBatchCommands({ add, list, flag }) {
         expiry_date: row.expiry_date,
         vendor_name: row.vendor_name
       });
-    }));
+    });
 
   list
     .command('batches')
     .alias('batch')
     .description('List batches')
     .option('--drug <drug>', 'filter by drug id')
-    .action(withErrorHandling(async (options) => {
+    .action(async (options) => {
       const drug = options.drug ?? await pickOptionalDrug('Filter by a specific drug?', {
         noneLabel: 'All drugs'
       });
@@ -62,14 +62,14 @@ export function registerBatchCommands({ add, list, flag }) {
           row.flag_reason
         ])
       );
-    }));
+    });
 
   flag
     .command('batch')
     .description('Flag a batch for review')
     .argument('[batchId]', 'batch id, or pick from a list')
     .option('--reason <reason>', 'flag reason')
-    .action(withErrorHandling(async (batchId, options) => {
+    .action(async (batchId, options) => {
       const picked = batchId ?? await pickBatch('Which batch should be flagged?');
       const reason = options.reason ?? await askText('Reason for flagging:');
 
@@ -86,9 +86,5 @@ export function registerBatchCommands({ add, list, flag }) {
         flagged: row.flagged,
         flag_reason: row.flag_reason
       });
-    }));
-}
-
-function withErrorHandling(fn) {
-  return (...args) => fn(...args).catch(handleCliError);
+    });
 }

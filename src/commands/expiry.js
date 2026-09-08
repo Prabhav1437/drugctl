@@ -1,6 +1,5 @@
 import { listExpiringStock } from '../models/stockTransaction.js';
 import { printTable } from '../lib/format.js';
-import { handleCliError } from '../lib/errors.js';
 import { expiryCheckSchema } from '../lib/validate.js';
 import { askNumber, pickOptionalInstitution } from '../lib/interact.js';
 
@@ -14,7 +13,7 @@ function registerExpiryCommand(command, description) {
     .description(description)
     .option('--within <within>', 'number of days')
     .option('--institution <institution>', 'optional institution id')
-    .action(withErrorHandling(async (options) => {
+    .action(async (options) => {
       const within = options.within ?? await askNumber('Show stock expiring within how many days?', {
         initial: 90,
         min: 1
@@ -35,9 +34,5 @@ function registerExpiryCommand(command, description) {
           row.qty
         ])
       );
-    }));
-}
-
-function withErrorHandling(fn) {
-  return (...args) => fn(...args).catch(handleCliError);
+    });
 }

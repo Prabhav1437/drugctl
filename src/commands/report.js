@@ -1,6 +1,5 @@
 import { listLowStock } from '../models/stockTransaction.js';
 import { printTable } from '../lib/format.js';
-import { handleCliError } from '../lib/errors.js';
 import { lowStockSchema } from '../lib/validate.js';
 import { askNumber, pickInstitution } from '../lib/interact.js';
 
@@ -20,7 +19,7 @@ function registerLowStockCommand(command, description) {
     .description(description)
     .option('--institution <institution>', 'institution id')
     .option('--threshold <threshold>', 'quantity threshold')
-    .action(withErrorHandling(async (options) => {
+    .action(async (options) => {
       const institution = options.institution ?? await pickInstitution('Which institution?');
       const threshold = options.threshold ?? await askNumber('Show drugs below what quantity?', {
         initial: 100,
@@ -33,9 +32,5 @@ function registerLowStockCommand(command, description) {
         ['Drug', 'Unit', 'Qty'],
         rows.map((row) => [row.drug_name, row.unit, row.qty])
       );
-    }));
-}
-
-function withErrorHandling(fn) {
-  return (...args) => fn(...args).catch(handleCliError);
+    });
 }

@@ -1,6 +1,5 @@
 import { createDrug, listDrugs } from '../models/drug.js';
 import { printRecord, printTable } from '../lib/format.js';
-import { handleCliError } from '../lib/errors.js';
 import { drugAddSchema } from '../lib/validate.js';
 import {
   DRUG_FORMS,
@@ -20,7 +19,7 @@ export function registerDrugCommands({ add, list }) {
     .option('--form <form>', 'tablet, syrup, injection, etc.')
     .option('--unit <unit>', 'strip, bottle, vial, etc.')
     .option('--storage <storage>', 'NORMAL or COLD_CHAIN')
-    .action(withErrorHandling(async (options) => {
+    .action(async (options) => {
       const name = options.name ?? await askText('Drug name:');
       const genericName = options.genericName ?? await askOptionalText('Generic name (optional):');
       const form = options.form ?? await askSelectOrOther('Form:', DRUG_FORMS);
@@ -36,13 +35,13 @@ export function registerDrugCommands({ add, list }) {
         unit: row.unit,
         storage_condition: row.storage_condition
       });
-    }));
+    });
 
   list
     .command('drugs')
     .alias('drug')
     .description('List drugs')
-    .action(withErrorHandling(async () => {
+    .action(async () => {
       const rows = await listDrugs();
       printTable(
         ['ID', 'Name', 'Generic', 'Form', 'Unit', 'Storage'],
@@ -55,9 +54,5 @@ export function registerDrugCommands({ add, list }) {
           row.storage_condition
         ])
       );
-    }));
-}
-
-function withErrorHandling(fn) {
-  return (...args) => fn(...args).catch(handleCliError);
+    });
 }
