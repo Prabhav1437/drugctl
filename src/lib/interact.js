@@ -3,6 +3,7 @@ import { listBatchesWithStock } from '../models/stockTransaction.js';
 import { listDrugs } from '../models/drug.js';
 import { listInstitutions } from '../models/institution.js';
 import { listBatches } from '../models/batch.js';
+import { formatDate } from './format.js';
 
 export const INSTITUTION_TYPES = [
   { value: 'STATE_WH', label: 'State Warehouse' },
@@ -79,7 +80,7 @@ export async function askNumber(message, { initial = undefined, min } = {}) {
       return undefined;
     }
   });
-  return value == null ? undefined : Number(value);
+  return value == null ? undefined : value.trim() === '' && initial !== undefined ? initial : Number(value);
 }
 
 export async function askDate(message) {
@@ -134,14 +135,7 @@ export async function pickInstitution(message, { type } = {}) {
 }
 
 export async function pickOptionalInstitution(message, { noneLabel = 'None / all' } = {}) {
-  if ((await institutionOptions()).length === 0) {
-    return undefined;
-  }
-  const wanted = await askSelect(message, [
-    { value: 'none', label: noneLabel },
-    ...(await institutionOptions())
-  ]);
-  return wanted === 'none' ? undefined : wanted;
+  return pickOptionalOption(message, await institutionOptions(), noneLabel);
 }
 
 export async function pickDrug(message) {
@@ -157,18 +151,7 @@ export async function pickDrug(message) {
 }
 
 export async function pickOptionalDrug(message, { noneLabel = 'None / all drugs' } = {}) {
-  const rows = await listDrugs();
-  if (rows.length === 0) {
-    return undefined;
-  }
-  const wanted = await askSelect(message, [
-    { value: 'none', label: noneLabel },
-    ...rows.map((row) => ({
-      value: row.id,
-      label: `${row.name}${row.form ? ` (${row.form})` : ''}`
-    }))
-  ]);
-  return wanted === 'none' ? undefined : wanted;
+  return pickOptionalOption(message, await drugOptions(), noneLabel);
 }
 
 export async function pickBatch(message, { institution } = {}) {
@@ -238,22 +221,24 @@ function formatBatch(row) {
   return label;
 }
 
-function formatDate(value) {
-  if (value == null) {
-    return '';
-  }
-  if (value instanceof Date) {
-    const year = String(value.getFullYear()).padStart(4, '0');
-    const month = String(value.getMonth() + 1).padStart(2, '0');
-    const day = String(value.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-  return String(value);
-}
-
 async function institutionOptions() {
   return (await listInstitutions()).map((row) => ({
     value: row.id,
     label: formatInstitution(row)
   }));
+}
+
+async function drugOptions() {
+  return (await listDrugs()).map((row) => ({
+    value: row.id,
+    label: `${row.name}${row.form ? ` (${row.form})` : ''}`
+  }));
+}
+
+async function pickOptionalOption(message, options, noneLabel) {
+  if (options.length === 0) {
+    return undefined;
+  }
+  const wanted = await askSelect(message, [{ value: 'none', label: noneLabel }, ...options]);
+  return wanted === 'none' ? undefined : wanted;
 }
