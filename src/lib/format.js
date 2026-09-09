@@ -13,6 +13,17 @@ export function printRecord(record) {
   printTable(['Field', 'Value'], rows);
 }
 
+export function printTransaction(row) {
+  printRecord({
+    id: row.id,
+    institution_id: row.institution_id,
+    batch_id: row.batch_id,
+    type: row.type,
+    qty: row.qty,
+    note: row.note
+  });
+}
+
 function formatCell(value) {
   if (value === null || value === undefined) {
     return '';
