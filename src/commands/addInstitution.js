@@ -1,15 +1,14 @@
-import { createInstitution, listInstitutions } from '../models/institution.js';
-import { printRecord, printTable } from '../lib/format.js';
-import { institutionAddSchema, institutionListSchema } from '../lib/validate.js';
+import { createInstitution } from '../models/institution.js';
+import { printRecord } from '../lib/format.js';
+import { institutionAddSchema } from '../lib/validate.js';
 import {
   askOptionalText,
   askText,
-  pickListType,
   pickOptionalInstitution,
   pickType
 } from '../lib/interact.js';
 
-export function registerInstitutionCommands({ add, list }) {
+export function registerAddInstitution(add) {
   add
     .command('institution')
     .description('Add an institution')
@@ -33,20 +32,5 @@ export function registerInstitutionCommands({ add, list }) {
         parent_id: row.parent_id,
         location: row.location
       });
-    });
-
-  list
-    .command('institutions')
-    .alias('institution')
-    .description('List institutions')
-    .option('--type <type>', 'filter by institution type')
-    .action(async (options) => {
-      const typeSelection = options.type ?? await pickListType('Filter by institution type:');
-      const type = typeSelection === 'all' ? undefined : typeSelection;
-      const rows = await listInstitutions(institutionListSchema.parse({ type }));
-      printTable(
-        ['ID', 'Name', 'Type', 'Parent', 'Location'],
-        rows.map((row) => [row.id, row.name, row.type, row.parent_name, row.location])
-      );
     });
 }

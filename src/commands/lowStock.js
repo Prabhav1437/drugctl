@@ -3,20 +3,14 @@ import { printTable } from '../lib/format.js';
 import { lowStockSchema } from '../lib/validate.js';
 import { askNumber, pickInstitution } from '../lib/interact.js';
 
-export function registerReportCommands(program, { list }) {
-  registerLowStockCommand(
-    program.command('low-stock'),
-    'List drugs below a stock threshold at an institution'
-  );
-  registerLowStockCommand(
-    list.command('low-stock'),
-    'List drugs below a stock threshold at an institution'
-  );
+export function registerLowStock(program, list) {
+  registerLowStockCommand(program.command('low-stock'));
+  registerLowStockCommand(list.command('low-stock'));
 }
 
-function registerLowStockCommand(command, description) {
+function registerLowStockCommand(command) {
   command
-    .description(description)
+    .description('List drugs below a stock threshold at an institution')
     .option('--institution <institution>', 'institution id')
     .option('--threshold <threshold>', 'quantity threshold')
     .action(async (options) => {

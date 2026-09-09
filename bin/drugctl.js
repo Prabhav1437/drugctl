@@ -3,12 +3,19 @@
 import { Command } from 'commander';
 import { closePool } from '../src/db/pool.js';
 import { handleCliError } from '../src/lib/errors.js';
-import { registerInstitutionCommands } from '../src/commands/institution.js';
-import { registerDrugCommands } from '../src/commands/drug.js';
-import { registerBatchCommands } from '../src/commands/batch.js';
-import { registerStockCommands } from '../src/commands/stock.js';
-import { registerExpiryCommands } from '../src/commands/expiry.js';
-import { registerReportCommands } from '../src/commands/report.js';
+import { registerAddInstitution } from '../src/commands/addInstitution.js';
+import { registerAddDrug } from '../src/commands/addDrug.js';
+import { registerAddBatch } from '../src/commands/addBatch.js';
+import { registerListInstitutions } from '../src/commands/listInstitutions.js';
+import { registerListDrugs } from '../src/commands/listDrugs.js';
+import { registerListBatches } from '../src/commands/listBatches.js';
+import { registerReceive } from '../src/commands/receive.js';
+import { registerIssue } from '../src/commands/issue.js';
+import { registerAdjust } from '../src/commands/adjust.js';
+import { registerBalance } from '../src/commands/balance.js';
+import { registerExpiry } from '../src/commands/expiry.js';
+import { registerLowStock } from '../src/commands/lowStock.js';
+import { registerFlagBatch } from '../src/commands/flagBatch.js';
 
 const program = new Command();
 const add = new Command('add').description('Add institution, drug, or batch records');
@@ -26,12 +33,19 @@ program.addCommand(list);
 program.addCommand(flag);
 program.addCommand(check);
 
-registerInstitutionCommands({ add, list });
-registerDrugCommands({ add, list });
-registerBatchCommands({ add, list, flag });
-registerStockCommands(program, { list });
-registerExpiryCommands(program, { check });
-registerReportCommands(program, { list });
+registerAddInstitution(add);
+registerAddDrug(add);
+registerAddBatch(add);
+registerListInstitutions(list);
+registerListDrugs(list);
+registerListBatches(list);
+registerReceive(program);
+registerIssue(program);
+registerAdjust(program);
+registerBalance(program, list);
+registerExpiry(program, check);
+registerLowStock(program, list);
+registerFlagBatch(flag);
 
 try {
   await program.parseAsync(process.argv);

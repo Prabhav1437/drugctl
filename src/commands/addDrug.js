@@ -1,5 +1,5 @@
-import { createDrug, listDrugs } from '../models/drug.js';
-import { printRecord, printTable } from '../lib/format.js';
+import { createDrug } from '../models/drug.js';
+import { printRecord } from '../lib/format.js';
 import { drugAddSchema } from '../lib/validate.js';
 import {
   DRUG_FORMS,
@@ -10,7 +10,7 @@ import {
   pickStorage
 } from '../lib/interact.js';
 
-export function registerDrugCommands({ add, list }) {
+export function registerAddDrug(add) {
   add
     .command('drug')
     .description('Add a drug')
@@ -35,24 +35,5 @@ export function registerDrugCommands({ add, list }) {
         unit: row.unit,
         storage_condition: row.storage_condition
       });
-    });
-
-  list
-    .command('drugs')
-    .alias('drug')
-    .description('List drugs')
-    .action(async () => {
-      const rows = await listDrugs();
-      printTable(
-        ['ID', 'Name', 'Generic', 'Form', 'Unit', 'Storage'],
-        rows.map((row) => [
-          row.id,
-          row.name,
-          row.generic_name,
-          row.form,
-          row.unit,
-          row.storage_condition
-        ])
-      );
     });
 }

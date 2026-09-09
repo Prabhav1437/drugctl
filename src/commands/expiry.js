@@ -3,14 +3,14 @@ import { printTable } from '../lib/format.js';
 import { expiryCheckSchema } from '../lib/validate.js';
 import { askNumber, pickOptionalInstitution } from '../lib/interact.js';
 
-export function registerExpiryCommands(program, { check }) {
-  registerExpiryCommand(program.command('expiry'), 'List stock expiring within N days');
-  registerExpiryCommand(check.command('expiry'), 'List stock expiring within N days');
+export function registerExpiry(program, check) {
+  registerExpiryCommand(program.command('expiry'));
+  registerExpiryCommand(check.command('expiry'));
 }
 
-function registerExpiryCommand(command, description) {
+function registerExpiryCommand(command) {
   command
-    .description(description)
+    .description('List stock expiring within N days')
     .option('--within <within>', 'number of days')
     .option('--institution <institution>', 'optional institution id')
     .action(async (options) => {
